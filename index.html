@@ -1,0 +1,243 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#080d1b">
+<title>TURBO RUSH</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#080d1b;color:white;
+ font-family:Arial,sans-serif;
+ text-align:center;overflow:hidden;
+ touch-action:manipulation
+}
+header{
+ padding:12px;background:#101a30;
+ display:flex;justify-content:space-around;
+ align-items:center;font-weight:bold
+}
+h2{color:#00eaff;margin:10px}
+#game{
+ position:relative;width:min(100vw,420px);
+ height:min(68vh,620px);min-height:400px;
+ margin:auto;background:#202b3b;
+ overflow:hidden;border-left:5px solid #00eaff;
+ border-right:5px solid #00eaff;
+}
+.road{
+ position:absolute;inset:0;
+ background:repeating-linear-gradient(
+  0deg,#303b4d 0px,#303b4d 45px,
+  #263345 45px,#263345 90px
+ );
+}
+.lane{
+ position:absolute;top:0;height:100%;width:5px;
+ background:repeating-linear-gradient(
+  to bottom,#ffffff 0 35px,transparent 35px 75px
+ );
+ opacity:.8
+}
+.l1{left:33.33%}
+.l2{left:66.66%}
+.car{
+ position:absolute;width:48px;height:78px;
+ border-radius:12px 12px 8px 8px;
+ z-index:3;display:flex;align-items:center;
+ justify-content:center;font-size:29px;
+}
+.player{
+ bottom:25px;left:calc(50% - 24px);
+ background:linear-gradient(135deg,#00eaff,#0066ff);
+ box-shadow:0 0 18px #00dfff
+}
+.enemy{
+ top:-90px;background:linear-gradient(135deg,#ff4b60,#a90032);
+ box-shadow:0 0 12px #ff304e
+}
+#controls{
+ display:flex;justify-content:center;gap:35px;
+ margin:15px
+}
+.control{
+ width:100px;height:55px;border:2px solid #00eaff;
+ background:#10223b;color:white;
+ border-radius:14px;font-size:27px;
+}
+button{cursor:pointer}
+#start{
+ padding:13px 30px;background:#00c9ff;
+ border:0;border-radius:10px;
+ font-size:17px;font-weight:bold;color:#07111e
+}
+#overlay{
+ position:absolute;inset:0;background:#07111eea;
+ z-index:10;display:flex;flex-direction:column;
+ justify-content:center;align-items:center;padding:20px
+}
+#overlay h1{color:#00eaff;font-size:35px}
+#overlay p{line-height:1.6}
+.hidden{display:none!important}
+#hud{display:flex;justify-content:space-around;padding:10px}
+</style>
+</head>
+<body>
+
+<h2>🏁 TURBO RUSH</h2>
+
+<header>
+ <span>🏆 SCORE: <span id="score">0</span></span>
+ <span>⚡ SPEED: <span id="speed">1</span></span>
+</header>
+
+<div id="hud">DODGE THE TRAFFIC!</div>
+
+<div id="game">
+ <div class="road"></div>
+ <div class="lane l1"></div>
+ <div class="lane l2"></div>
+
+ <div class="car player" id="player">🏎️</div>
+
+ <div id="overlay">
+  <h1>TURBO RUSH</h1>
+  <p>Dodge traffic. Survive longer.<br>Become the racing champion!</p>
+  <button id="start">START RACING</button>
+ </div>
+</div>
+
+<div id="controls">
+ <button class="control" id="left">⬅️</button>
+ <button class="control" id="right">➡️</button>
+</div>
+
+<script>
+const game=document.getElementById("game");
+const player=document.getElementById("player");
+const scoreEl=document.getElementById("score");
+const speedEl=document.getElementById("speed");
+const overlay=document.getElementById("overlay");
+const startBtn=document.getElementById("start");
+
+let running=false;
+let lane=1;
+let score=0;
+let speed=3;
+let enemies=[];
+let lastSpawn=0;
+let animation=0;
+
+const lanePositions=[
+  1/6, 3/6, 5/6
+];
+
+function movePlayer(){
+ player.style.left=
+ (lanePositions[lane]*game.clientWidth-24)+"px";
+}
+
+function changeLane(direction){
+ if(!running)return;
+ lane=Math.max(0,Math.min(2,lane+direction));
+ movePlayer();
+}
+
+document.getElementById("left").onclick=()=>changeLane(-1);
+document.getElementById("right").onclick=()=>changeLane(1);
+
+document.addEventListener("keydown",e=>{
+ if(e.key==="ArrowLeft")changeLane(-1);
+ if(e.key==="ArrowRight")changeLane(1);
+});
+
+function spawnEnemy(){
+ const enemy=document.createElement("div");
+ enemy.className="car enemy";
+ enemy.textContent="🚗";
+ const enemyLane=Math.floor(Math.random()*3);
+ enemy.style.left=
+ (lanePositions[enemyLane]*game.clientWidth-24)+"px";
+ game.appendChild(enemy);
+ enemies.push({el:enemy,y:-90});
+}
+
+function collision(a,b){
+ return !(
+ a.right<b.left+8 ||
+ a.left>b.right-8 ||
+ a.bottom<b.top+8 ||
+ a.top>b.bottom-8
+ );
+}
+
+function endGame(){
+ running=false;
+ cancelAnimationFrame(animation);
+ overlay.classList.remove("hidden");
+ overlay.innerHTML=`
+ <h1>RACE OVER!</h1>
+ <p>Your score: ${score}<br>Keep practicing, racer!</p>
+ <button id="start">RACE AGAIN</button>
+ `;
+ document.getElementById("start").onclick=startGame;
+}
+
+function gameLoop(time){
+ if(!running)return;
+
+ if(time-lastSpawn>Math.max(550,1300-speed*90)){
+  spawnEnemy();
+  lastSpawn=time;
+ }
+
+ const playerRect=player.getBoundingClientRect();
+
+ enemies.forEach(enemy=>{
+  enemy.y+=speed;
+  enemy.el.style.top=enemy.y+"px";
+
+  if(collision(playerRect,enemy.el.getBoundingClientRect())){
+   endGame();
+  }
+ });
+
+ enemies=enemies.filter(enemy=>{
+  if(enemy.y>game.clientHeight){
+   enemy.el.remove();
+   score+=10;
+   scoreEl.textContent=score;
+   return false;
+  }
+  return true;
+ });
+
+ speed=Math.min(8,3+Math.floor(score/100)*0.5);
+ speedEl.textContent=speed;
+
+ if(running)animation=requestAnimationFrame(gameLoop);
+}
+
+function startGame(){
+ cancelAnimationFrame(animation);
+ enemies.forEach(e=>e.el.remove());
+ enemies=[];
+ score=0;
+ speed=3;
+ lane=1;
+ lastSpawn=performance.now();
+ scoreEl.textContent="0";
+ speedEl.textContent="3";
+ movePlayer();
+ overlay.classList.add("hidden");
+ running=true;
+ animation=requestAnimationFrame(gameLoop);
+}
+
+startBtn.onclick=startGame;
+movePlayer();
+</script>
+</body>
+</html>
