@@ -40,6 +40,9 @@ h2{color:#00eaff;margin:10px}
  #090d20 100%);
  box-shadow:
  inset 0 0 35px #00d9ff55;
+ @keyframes roadMove{
+ from{background-position:0 0}
+ to{background-position:0 180px}
 }
 .lane{
  position:absolute;
@@ -108,6 +111,23 @@ button{cursor:pointer}
 #overlay p{line-height:1.6}
 .hidden{display:none!important}
 #hud{display:flex;justify-content:space-around;padding:10px}
+ #game::before,
+#game::after{
+ content:"";
+ position:absolute;
+ top:0;
+ height:100%;
+ width:4px;
+ z-index:5;
+ background:#00eaff;
+ box-shadow:
+  0 0 8px #00eaff,
+  0 0 18px #00eaff,
+  0 0 30px #008cff;
+}
+
+#game::before{left:0}
+#game::after{right:0}
 </style>
 </head>
 <body>
